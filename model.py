@@ -11,18 +11,21 @@ class Attention(torch.nn.Module):
   def __init__(self, dim):
     super().__init__()
     self.dim = dim
-    self.qkv_prj = torch.nn.Linear(dim, 3 * dim)
-    self.out_prj = torch.nn.Linear(dim, dim)
-    self.dropout = torch.nn.Dropout(0.1)
+    self.q_proj = torch.nn.Linear(dim, dim)
+    self.k_proj = torch.nn.Linear(dim, dim)
+    self.v_proj = torch.nn.Linear(dim, dim)
+    self.o_proj = torch.nn.Linear(dim, dim)
+    self.drpout = torch.nn.Dropout(0.1)
 
   def forward(self, x):
-    qry, key, val = self.qkv_prj(x).split(self.dim, dim=-1)
-    scale = self.dim ** -0.5
-    att = torch.matmul(qry, key.transpose(-2, -1)) * scale
+    qry = self.q_proj(x)
+    key = self.k_proj(x)
+    val = self.v_proj(x)
+    att = qry @ key.transpose(-2, -1) * self.dim ** -0.5
     att = torch.softmax(att, dim=-1)
-    att = self.dropout(att)
+    att = self.drpout(att)
     out = torch.matmul(att, val)
-    return self.out_prj(out)
+    return self.o_proj(out)
 
 
 #
@@ -77,7 +80,10 @@ class LookerTrns(torch.nn.Module):
     self.pos = torch.nn.Embedding(17, 128)
     self.register_buffer('rng', torch.arange(17))
     self.enc = torch.nn.ModuleList([EncoderLayer(128) for _ in range(6)])
-    self.fin = torch.nn.Sequential(torch.nn.LayerNorm(128), torch.nn.Linear(128, 10))
+    self.fin = torch.nn.Sequential(
+      torch.nn.LayerNorm(128),
+      torch.nn.Linear(128, 10)
+    )
 
   def forward(self, x):
     B = x.shape[0]                      # [B, 16, 196]
