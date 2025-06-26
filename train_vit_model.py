@@ -43,8 +43,8 @@ def train(epochs=20, batch_size=64, lr=5e-5, patch_size=20, num_rows=1, num_cols
             optimizer.zero_grad()
             logits = model(img, tgt_input)             # [B, T-1, vocab_size]
             loss = F.cross_entropy(
-                logits.view(-1, vocab_size),
-                tgt_target.view(-1),
+                logits.reshape(-1, vocab_size),
+                tgt_target.reshape(-1),
                 ignore_index=pad_token
             )
             loss.backward()
