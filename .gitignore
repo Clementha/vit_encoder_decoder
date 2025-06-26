@@ -2,3 +2,4 @@ MNIST
 wandb
 __pycache__
 checkpoints
+test_samples
