@@ -5,12 +5,12 @@ from multi_digit_dataset import MultiRowGridDigitDataset
 import os
 
 # --- Config ---
-model_path = "./checkpoints/vit_seq_epoch20.pth"  # Change if needed
+model_path = "./checkpoints/vit_seq_epoch20.pth"  
 output_dir = "test_samples"
 os.makedirs(output_dir, exist_ok=True)
 
 # --- Load dataset and sample ---
-dataset = MultiRowGridDigitDataset(num_rows=1, num_cols=5, cell_size=20)
+dataset = MultiRowGridDigitDataset(num_rows=3, num_cols=3, cell_size=20)
 img, seq = dataset[0]
 
 # --- Save the input image with a constant filename ---
@@ -35,7 +35,14 @@ model.eval()
 # --- Prepare input for prediction ---
 with torch.no_grad():
     img = img.unsqueeze(0)  # [1, 1, H, W]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print(f"Using device: {device}")
+        
     model = model.to(device)
     img = img.to(device)
 

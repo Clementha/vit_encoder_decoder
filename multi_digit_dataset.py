@@ -72,7 +72,7 @@ if __name__ == '__main__':
     os.makedirs("output_samples", exist_ok=True)
 
     # Load dataset
-    dataset = MultiRowGridDigitDataset(num_rows=1, num_cols=5, cell_size=20)
+    dataset = MultiRowGridDigitDataset(num_rows=3, num_cols=3, cell_size=20)
 
     # Vocab mapping
     vocab_map = {10: "start", 11: "end", 12: "pad"}
