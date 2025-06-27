@@ -50,7 +50,7 @@ with torch.no_grad():
     start_token = 10
     end_token = 11
     pad_token = 12
-    max_len = 7  # start + up to 5 digits + end
+    max_len = 11  # start + up to 5 digits + end
 
     tgt_seq = torch.tensor([[start_token]], dtype=torch.long, device=device)
     for _ in range(max_len - 1):
