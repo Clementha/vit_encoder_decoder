@@ -11,14 +11,13 @@ from decoder import CustomTransformerDecoder  # Transformer decoder
 import wandb
 
 def train(epochs=20, batch_size=64, lr=5e-5, patch_size=20, num_rows=3, num_cols=3):
-    device = torch.device("cpu")
-    # if torch.backends.mps.is_available():
-    #     device = torch.device("mps")
-    # elif torch.cuda.is_available():
-    #     device = torch.device("cuda")
-    # else:
-    #     device = torch.device("cpu")
-    # print(f"Using device: {device}")
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print(f"Using device: {device}")
     
     pad_token = 12
     vocab_size = 13  # 0-9 + <start> + <end> + <pad>

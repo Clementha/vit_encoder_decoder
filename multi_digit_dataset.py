@@ -7,11 +7,12 @@ from PIL import Image, ImageOps
 import numpy as np
 
 class MultiRowGridDigitDataset(Dataset):
-    def __init__(self, num_rows=1, num_cols=5, cell_size=20, max_digits=None, transform=None):
+    def __init__(self, num_rows=3, num_cols=3, cell_size=20, length=10000, transform=None):
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.cell_size = cell_size
-        self.max_digits = max_digits if max_digits is not None else num_rows * num_cols
+        self.max_digits = num_rows * num_cols
+        self.length = length
         self.transform = transform if transform else transforms.ToTensor()
 
         self.mnist = MNIST(root="./data", train=True, download=True)
@@ -20,47 +21,59 @@ class MultiRowGridDigitDataset(Dataset):
         self.end_token = 11
 
     def __len__(self):
-        return 10000
+        return self.length
 
     def __getitem__(self, idx):
-        grid_img = Image.new("L", (self.num_cols * self.cell_size, self.num_rows * self.cell_size), color=0)
-
+        # Decide number of real digits (1 to max_digits)
         num_digits = random.randint(1, self.max_digits)
+
+        # Pick N digit samples (with replacement)
         digit_indices = random.choices(range(len(self.mnist)), k=num_digits)
-        labels = [self.mnist[i][1] for i in digit_indices]
+        digits = [self.mnist[i] for i in digit_indices]
+        digit_imgs = [img.resize((self.cell_size, self.cell_size), Image.BILINEAR) for img, _ in digits]
+        digit_labels = [label for _, label in digits]
 
-        total_cells = self.num_rows * self.num_cols
-        cell_indices = list(range(total_cells))
-        random.shuffle(cell_indices)
-        selected_cells = cell_indices[:num_digits]
+        # Prepare full grid: fill with blanks
+        blank_img = Image.new("L", (self.cell_size, self.cell_size), color=0)
+        full_imgs = [blank_img for _ in range(self.max_digits)]
 
-        cell_and_label = []
-        for digit_idx, cell_id in zip(digit_indices, selected_cells):
-            digit_img = self.mnist[digit_idx][0]
-            digit_resized = ImageOps.fit(digit_img, (self.cell_size, self.cell_size))
+        # Randomly assign digit positions
+        positions = list(range(self.max_digits))
+        digit_positions = random.sample(positions, k=num_digits)
 
-            row = cell_id // self.num_cols
-            col = cell_id % self.num_cols
+        for img, pos in zip(digit_imgs, digit_positions):
+            full_imgs[pos] = img
+
+        # Create the grid image
+        grid_width = self.num_cols * self.cell_size
+        grid_height = self.num_rows * self.cell_size
+        grid_img = Image.new("L", (grid_width, grid_height), color=0)
+
+        for i, digit_img in enumerate(full_imgs):
+            row = i // self.num_cols
+            col = i % self.num_cols
             x = col * self.cell_size
             y = row * self.cell_size
-            grid_img.paste(digit_resized, (x, y))
+            grid_img.paste(digit_img, (x, y))
 
-            label = self.mnist[digit_idx][1]
-            cell_and_label.append((cell_id, label))
+        image_tensor = self.transform(grid_img)
 
-        # Sort by cell position (top-to-bottom, left-to-right)
-        cell_and_label.sort()
-        labels = [label for _, label in cell_and_label]
+        # Track (position, label) pairs
+        position_label_pairs = list(zip(digit_positions, digit_labels))
 
+        # Sort by grid layout order: top-left to bottom-right
+        position_label_pairs.sort()
 
-        img_tensor = self.transform(grid_img)  # [1, H, W]
+        # Extract labels in visual order
+        ordered_labels = [label for _, label in position_label_pairs]
 
-        tokens = [self.start_token] + labels + [self.end_token]
-        pad_len = self.max_digits + 2 - len(tokens)
-        tokens += [self.pad_token] * pad_len
-        tgt_seq = torch.tensor(tokens, dtype=torch.long)
+        # Final sequence
+        label_seq = [self.start_token] + ordered_labels + [self.end_token]
+        pad_len = self.max_digits + 2 - len(label_seq)
+        label_seq += [self.pad_token] * pad_len
+        label_tensor = torch.tensor(label_seq, dtype=torch.long)
 
-        return img_tensor, tgt_seq
+        return image_tensor, label_tensor
 
 
 import matplotlib.pyplot as plt
