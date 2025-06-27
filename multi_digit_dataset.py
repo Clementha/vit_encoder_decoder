@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 import numpy as np
 
 class MultiRowGridDigitDataset(Dataset):
-    def __init__(self, num_rows=3, num_cols=3, cell_size=20, length=10000, transform=None):
+    def __init__(self, num_rows=3, num_cols=3, cell_size=20, length=100000, transform=None):
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.cell_size = cell_size

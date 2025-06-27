@@ -19,12 +19,12 @@ else:
     device = torch.device("cpu")
 print(f"Using device: {device}")
 
-def train(epochs=50, batch_size=64, lr=5e-5, patch_size=20, num_rows=3, num_cols=3):
+def train(epochs=50, batch_size=256, lr=5e-5, patch_size=20, num_rows=3, num_cols=3):
 
 
     transform = transforms.ToTensor()
     dataset = MultiRowGridDigitDataset(num_rows=num_rows, num_cols=num_cols, cell_size=patch_size, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
 
     vocab_size = 13
     pad_token = 12
@@ -62,7 +62,8 @@ def train(epochs=50, batch_size=64, lr=5e-5, patch_size=20, num_rows=3, num_cols
             loss = F.cross_entropy(
                 logits.reshape(-1, vocab_size),
                 tgt_target.reshape(-1),
-                ignore_index=pad_token
+                ignore_index=pad_token,
+                label_smoothing=0.1
             )
             loss.backward()
             # Gradient clipping
